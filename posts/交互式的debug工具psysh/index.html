@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+  <title>交互式的Debug工具PsySH - symo&#39;s blog</title>
+  <meta property="og:title" content="交互式的Debug工具PsySH - symo&#39;s blog" />
+  <meta name="twitter:title" content="交互式的Debug工具PsySH - symo&#39;s blog" />
+  <meta name="description" content="原文： Interactive PHP Debugging with PsySH 作者： Miguel Ibarra Romero 翻译：Symo
+现在是凌晨一点，距离你的Web项目上线只有八个小时了，然而它却不能正常的工作。你不停向代码中填入var_dump()和die()试图定位程序中的bug……
+此时的你异常恼火，不得不一遍又一遍的更改源码，运行程序，查看某个函数的返回值或者检查某个变量是否被正确的赋值。最后也不确定是否要删掉代码中一大堆的var_dump()。
+这样的情景是否于你似曾相识呢？
+PsySH来拯救你了 PsySH是一个交互式的解释环境(Read-Eval-Print Loop)，如果你曾经使用浏览器的控制台调试过JavaScript，你会明白这是一个非常强大和方便的Debug方式。
+谈到PHP，你也许用过PHP的交互控制台(php -a)，在里面你可以直接写一些代码然后直接执行它们。
+php -a Interactive shell php &gt; $a = &#39;Hello world!&#39;; php &gt; echo $a; Hello world! php &gt;  然而遗憾的是，这个交互式界面缺乏一个“P”（print），所以不是REPL。我必须执行一个echo语句来打印$a的值。使用真正的REPL，我们将会在给变量赋值的一瞬间看到结果。
+要安装PsySH，可以使用composer g require，也可以下载PsySH的可执行文件。
+Composer composer g require psy/psysh:~0.1 psysh  直接下载（Linux、Mac） wget psysh.org/psysh chmod &#43;x psysh ./psysh  另外，你也可以使用composer为每个项目单独的引入PsySH，就像一会儿你在将在文章的后面见到的。
+现在，让我们开始使用一下PsySH吧。
+./psysh Psy Shell v0.1.11 (PHP 5.5.8 — cli) by Justin Hileman &gt;&gt;&gt;  它的主要帮助文件将会是你的好助手，它会告诉你所有的参数和它们的含义。">
+  <meta property="og:description" content="原文： Interactive PHP Debugging with PsySH 作者： Miguel Ibarra Romero 翻译：Symo
+现在是凌晨一点，距离你的Web项目上线只有八个小时了，然而它却不能正常的工作。你不停向代码中填入var_dump()和die()试图定位程序中的bug……
+此时的你异常恼火，不得不一遍又一遍的更改源码，运行程序，查看某个函数的返回值或者检查某个变量是否被正确的赋值。最后也不确定是否要删掉代码中一大堆的var_dump()。
+这样的情景是否于你似曾相识呢？
+PsySH来拯救你了 PsySH是一个交互式的解释环境(Read-Eval-Print Loop)，如果你曾经使用浏览器的控制台调试过JavaScript，你会明白这是一个非常强大和方便的Debug方式。
+谈到PHP，你也许用过PHP的交互控制台(php -a)，在里面你可以直接写一些代码然后直接执行它们。
+php -a Interactive shell php &gt; $a = &#39;Hello world!&#39;; php &gt; echo $a; Hello world! php &gt;  然而遗憾的是，这个交互式界面缺乏一个“P”（print），所以不是REPL。我必须执行一个echo语句来打印$a的值。使用真正的REPL，我们将会在给变量赋值的一瞬间看到结果。
+要安装PsySH，可以使用composer g require，也可以下载PsySH的可执行文件。
+Composer composer g require psy/psysh:~0.1 psysh  直接下载（Linux、Mac） wget psysh.org/psysh chmod &#43;x psysh ./psysh  另外，你也可以使用composer为每个项目单独的引入PsySH，就像一会儿你在将在文章的后面见到的。
+现在，让我们开始使用一下PsySH吧。
+./psysh Psy Shell v0.1.11 (PHP 5.5.8 — cli) by Justin Hileman &gt;&gt;&gt;  它的主要帮助文件将会是你的好助手，它会告诉你所有的参数和它们的含义。">
+  <meta name="twitter:description" content="原文： Interactive PHP Debugging with PsySH 作者： Miguel Ibarra Romero 翻译：Symo
+现在是凌晨一点，距离你的Web项目上线只有八个小时了，然而它却不能正常的工作。你不停向代码中填入var_dump()和die()试图定位程序中的bug……
+此时的你异常恼火，不得不一遍又一遍的更改源码，运行程序，查看某个函数的返回值或者检查某个变量是否 …">
+  <meta name="author" content="Your name"/>
+  <meta property="og:site_name" content="symo&#39;s blog" />
+  <meta property="og:url" content="https://example.com/posts/%E4%BA%A4%E4%BA%92%E5%BC%8F%E7%9A%84debug%E5%B7%A5%E5%85%B7psysh/" />
+  <meta property="og:type" content="article" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="generator" content="Hugo 0.53" />
+
+  <link rel="stylesheet" href="/css/style.css" media="all" />
+  <link rel="stylesheet" href="/css/syntax.css" media="all" />
+  <link rel="stylesheet" href="/css/custom.css" media="all" />
+
+  <script src="/js/script.js"></script>
+  <script src="/js/custom.js"></script>
+  <script defer src="/js/fontawesome.js"></script>
+</head>
+
+<body>
+
+<header class="site-header">
+  <nav class="site-navi">
+    <h1 class="site-title"><a href="/">symo&#39;s blog</a></h1>
+    <ul class="site-navi-items">
+      <li class="site-navi-item-categories"><a href="/posts/" title="Posts">Posts</a></li>
+      <li class="site-navi-item-tags"><a href="/tags/" title="Tags">Tags</a></li>
+    </ul>
+  </nav>
+</header>
+<hr class="site-header-bottom">
+
+  <div class="main" role="main">
+    <article class="article">
+      
+      
+      <h1 class="article-title">交互式的Debug工具PsySH</h1>
+      
+      <hr class="article-title-bottom">
+      <ul class="article-meta">
+        <li class="article-meta-date"><time>March 7, 2017</time></li>
+      </ul>
+      
+<aside class="toc">
+  <nav id="TableOfContents">
+<ul>
+<li>
+<ul>
+<li><a href="#psysh来拯救你了">PsySH来拯救你了</a>
+<ul>
+<li><a href="#composer">Composer</a></li>
+<li><a href="#直接下载-linux-mac">直接下载（Linux、Mac）</a></li>
+</ul></li>
+<li><a href="#demo-app">Demo app</a></li>
+<li><a href="#使用cli进行debugging">使用CLI进行Debugging</a></li>
+<li><a href="#使用内置服务器debug">使用内置服务器Debug</a></li>
+<li><a href="#使用单元测试进行debug">使用单元测试进行Debug</a></li>
+<li><a href="#结论">结论</a></li>
+</ul></li>
+</ul>
+</nav>
+</aside>
+      
+
+<hr />
+
+<p>原文： <a href="http://www.sitepoint.com/interactive-php-debugging-psysh/">Interactive PHP Debugging with PsySH</a>
+作者： <a href="http://www.sitepoint.com/author/mibarra/">Miguel Ibarra Romero</a>
+翻译：Symo</p>
+
+<p>现在是凌晨一点，距离你的Web项目上线只有八个小时了，然而它却不能正常的工作。你不停向代码中填入<code>var_dump()</code>和<code>die()</code>试图定位程序中的bug……</p>
+
+<p>此时的你异常恼火，不得不一遍又一遍的更改源码，运行程序，查看某个函数的返回值或者检查某个变量是否被正确的赋值。最后也不确定是否要删掉代码中一大堆的<code>var_dump()</code>。</p>
+
+<p>这样的情景是否于你似曾相识呢？</p>
+
+<h2 id="psysh来拯救你了">PsySH来拯救你了</h2>
+
+<p><a href="http://psysh.org/">PsySH</a>是一个交互式的解释环境(<a href="https://en.wikipedia.org/wiki/Read%E2%80%93eval%E2%80%93print_loop">Read-Eval-Print Loop</a>)，如果你曾经使用浏览器的控制台调试过JavaScript，你会明白这是一个非常强大和方便的Debug方式。</p>
+
+<p>谈到PHP，你也许用过PHP的交互控制台(<code>php -a</code>)，在里面你可以直接写一些代码然后直接执行它们。</p>
+
+<pre><code>php -a
+Interactive shell
+
+php &gt; $a = 'Hello world!';
+php &gt; echo $a;
+Hello world!
+php &gt;
+</code></pre>
+
+<p>然而遗憾的是，这个交互式界面缺乏一个“P”（print），所以不是REPL。我必须执行一个<code>echo</code>语句来打印<code>$a</code>的值。使用真正的REPL，我们将会在给变量赋值的一瞬间看到结果。</p>
+
+<p>要安装PsySH，可以使用<code>composer g require</code>，也可以下载PsySH的可执行文件。</p>
+
+<h3 id="composer">Composer</h3>
+
+<pre><code>composer g require psy/psysh:~0.1
+psysh
+</code></pre>
+
+<h3 id="直接下载-linux-mac">直接下载（Linux、Mac）</h3>
+
+<pre><code>wget psysh.org/psysh
+chmod +x psysh
+./psysh
+</code></pre>
+
+<p>另外，你也可以使用composer为每个项目单独的引入PsySH，就像一会儿你在将在文章的后面见到的。</p>
+
+<p>现在，让我们开始使用一下PsySH吧。</p>
+
+<pre><code>./psysh
+Psy Shell v0.1.11 (PHP 5.5.8 — cli) by Justin Hileman   &gt;&gt;&gt;
+</code></pre>
+
+<p>它的主要帮助文件将会是你的好助手，它会告诉你所有的参数和它们的含义。</p>
+
+<pre><code>&gt;&gt;&gt; help
+
+  help      Show a list of commands. Type `help [foo]` for information about [foo].      Aliases: ?
+  
+  ls        List local, instance or class variables, methods and constants.              Aliases: list, dir
+  
+  dump      Dump an object or primitive.
+  
+  doc       Read the documentation for an object, class, constant, method or property.   Aliases: rtfm, man 
+  
+  show      Show the code for an object, class, constant, method or property.
+  
+  wtf       Show the backtrace of the most recent exception.                             Aliases: last-exception, wtf?
+  
+  trace     Show the current call stack.
+  
+  buffer    Show (or clear) the contents of the code input buffer.                       Aliases: buf
+  
+  clear     Clear the Psy Shell screen.
+  
+  history   Show the Psy Shell history.
+  
+  exit      End the current session and return to caller.
+</code></pre>
+
+<pre><code>&gt;&gt;&gt; help ls
+
+Usage:
+
+ls [--vars] [-c|--constants] [-f|--functions] [-k|--classes] [-I|--interfaces] [-t|--traits] [-p|--properties] [-m|--methods] [-G|--grep=&quot;...&quot;] [-i|--insensitive] [-v|--invert] [-g|--globals] [-n|--internal] [-u|--user] [-C|--
+category=&quot;...&quot;] [-a|--all] [-l|--long] [target]
+
+Aliases: list, dir
+
+Arguments:
+
+ target             A target class or object to list.
+ 
+ 
+Options:
+
+ --vars             Display variables.
+ 
+ --constants (-c)   Display defined constants.
+ 
+ --functions (-f)   Display defined functions.
+ 
+ --classes (-k)     Display declared classes.
+ 
+ --interfaces (-I)  Display declared interfaces.
+ 
+ --traits (-t)      Display declared traits.
+ 
+ --properties (-p)  Display class or object properties (public properties by default).
+ 
+ --methods (-m)     Display class or object methods (public methods by default).
+ 
+ --grep (-G)        Limit to items matching the given pattern (string or regex).
+ 
+ --insensitive (-i) Case-insensitive search (requires --grep).
+ 
+ --invert (-v)      Inverted search (requires --grep).
+ 
+ --globals (-g)     Include global variables.
+ 
+ --internal (-n)    Limit to internal functions and classes.
+ 
+ --user (-u)        Limit to user-defined constants, functions and classes.
+ 
+ --category (-C)    Limit to constants in a specific category (e.g. &quot;date&quot;).
+ 
+ --all (-a)         Include private and protected methods and properties.
+ 
+ --long (-l)        List in long format: includes class names and method signatures.
+ 
+ 
+ Help:
+ 
+ List variables, constants, classes, interfaces, traits, functions, methods, and properties.
+ 
+ Called without options, this will return a list of variables currently in scope.
+ 
+ If a target object is provided, list properties, constants and methods of that target. If a class, interface or trait name is passed instead, list constants and methods on that class.
+ 
+ e.g. 
+ 
+ &gt;&gt;&gt; ls
+ &gt;&gt;&gt; ls $foo
+ &gt;&gt;&gt; ls -k --grep mongo -i
+ &gt;&gt;&gt; ls -al ReflectionClass
+ &gt;&gt;&gt; ls --constants --category date
+ &gt;&gt;&gt; ls -l --functions --grep /^array_.*/
+ &gt;&gt;&gt;
+</code></pre>
+
+<p>最基本的，PsySH可以这样用：</p>
+
+<pre><code>&gt;&gt;&gt; $a = 'hello';
+=&gt; &quot;hello&quot;
+&gt;&gt;&gt;
+</code></pre>
+
+<p>请注意PsySH和PHP控制台之间的区别，PsySH在<code>$a</code>被赋值的一瞬间就打印出了它的值。</p>
+
+<p>下面是一个稍微复杂的例子：</p>
+
+<pre><code>&gt;&gt;&gt; function say($a) {
+...     echo $a;
+... }
+=&gt; null
+&gt;&gt;&gt; say('hello');
+hello
+=&gt; null
+&gt;&gt;&gt;
+</code></pre>
+
+<p>我们定义了一个<code>say()</code>函数并调用。你看到两个<code>null</code>是因为函数既没有定义也没有return一个值（函数直接<code>echo</code>出来变量的值），另外在定义一个函数的时候，提示符从<code>&gt;&gt;&gt;</code>变成了<code>...</code>。</p>
+
+<p>那么我们能不能定义一个类然后实例化呢？</p>
+
+<pre><code>&gt;&gt;&gt; class Foo
+... {
+...     protected $a;
+...
+...     public function setA($a) {
+...         $this-&gt;a = $a;
+...     }
+...
+...     public function getA() {
+...         return $this-&gt;a;
+...     }
+... }
+=&gt; null
+&gt;&gt;&gt; $foo = new Foo();
+=&gt; &lt;Foo #000000001dce50dd000000002dda326e&gt; {}
+&gt;&gt;&gt; $foo-&gt;setA('hello');
+=&gt; null
+&gt;&gt;&gt; $foo-&gt;getA();
+=&gt; &quot;hello&quot;
+&gt;&gt;&gt;
+</code></pre>
+
+<p>当<code>Foo</code>被实例化的时候，构造器返回了一个对象的引用，这是为什么PsySH打印了一个<code>&lt;Foo #000000001dce50dd000000002dda326e&gt;</code>。现在让我们看一看PsySH在对象上一些有趣的用法。</p>
+
+<pre><code>&gt;&gt;&gt; ls $foo
+Class Methods: getA, setA
+&gt;&gt;&gt;
+</code></pre>
+
+<p>假如因为某些原因你忘记了在Foo中定义了那些方法，现在你就有答案了。你用过Linux或者Mac的命令行界面吗？那么你应当很熟悉<code>ls</code>命令吧。还记得<code>-la</code>参数吗？</p>
+
+<pre><code>&gt;&gt;&gt; ls -la $foo
+Class Properties:
+
+  $a   &quot;hello&quot; 
+  
+
+Class Methods:
+
+  getA   public function getA()
+  setA   public function setA($a)
+</code></pre>
+
+<p>很好玩，不是吗？</p>
+
+<p>PsySH强大的能力在整合到项目之后才会真正展现出来，所以让我们来构建一个项目吧。</p>
+
+<h2 id="demo-app">Demo app</h2>
+
+<p>我会使用<code>装饰者模式</code>来实现一个快捷的应用作为展示，模式的UML类图如下：
+<img src="http://www.oodesign.com/images/design_patterns/structural/decorator-design-pattern-implementation-uml-class-diagram.png" alt="1" /></p>
+
+<p>如果你并不熟悉UML或者设计模式，也不要担心，理解它们对这篇文章而言并不是必须的。</p>
+
+<p>还有在这个项目中，我建立了一些能够在<code>phpUnit</code>中运行的测试方法，同样，如果你不熟悉<code>单元测试</code>的话，也不会影响你理解这篇文章。</p>
+
+<p>这个小应用的完整源代码可以在这里找到：<a href="https://github.com/sitepoint-examples/PsySH">https://github.com/sitepoint-examples/PsySH</a></p>
+
+<p>首先，让我们定义项目的<code>composer.json</code>来声明PsySH的依赖关系。</p>
+
+<pre><code>{
+    &quot;name&quot;: &quot;example/psysh&quot;,
+    &quot;authors&quot;: [
+        {
+            &quot;name&quot;: &quot;John Doe&quot;,
+            &quot;email&quot;: &quot;john@doe.tst&quot;
+        }
+    ],
+    &quot;require&quot;: {
+        &quot;psy/psysh&quot;: &quot;~0.1&quot;
+    },
+    &quot;autoload&quot;: {
+        &quot;psr-4&quot;: {&quot;Acme\\&quot;: &quot;src/&quot;}
+    }
+}
+</code></pre>
+
+<p>在运行<code>composer install</code>之后，就可以开始了。</p>
+
+<p>请先看一下<code>public/decorator.php</code>文件中的代码，它会实例化<code>SimpleWindow</code>, <code>DecoratedWindow</code>，和 <code>TitledWindow</code>对象来=展示装饰者模式。</p>
+
+<pre><code>&lt;?php
+chdir(dirname(__DIR__));
+
+require_once('vendor/autoload.php');
+
+use Acme\Patterns\Decorator\SimpleWindow;
+use Acme\Patterns\Decorator\DecoratedWindow;
+use Acme\Patterns\Decorator\TitledWindow;
+
+echo PHP_EOL . 'Simple Window' . PHP_EOL;
+
+$window = new SimpleWindow();
+
+echo $window-&gt;render();
+
+echo PHP_EOL . 'Decorated Simple Window' . PHP_EOL;
+
+$decoratedWindow = new DecoratedWindow($window);
+
+echo $decoratedWindow-&gt;render();
+
+echo PHP_EOL . 'Titled Simple Window' . PHP_EOL;
+
+$titledWindow = new TitledWindow($window);
+
+echo $titledWindow-&gt;render();
+</code></pre>
+
+<p>我们可以使用PHP CLI（命令行界面）或者通过配置Web服务器来运行这些代码。也可以使用PHP内置的Web服务器。</p>
+
+<h2 id="使用cli进行debugging">使用CLI进行Debugging</h2>
+
+<p>使用命令行界面运行上面的代码将会看到这样的界面：</p>
+
+<pre><code>php public/decorator.php 
+
+Simple Window
++-------------+
+|             |
+|             |
+|             |
+|             |
+|             |
++-------------+
+
+Decorated Simple Window
++-------------+
+|             |
+|             |
+|             |
+|             |
+|             |
++-------------+
+
+Titled Simple Window
++-------------+
+|Title        |
++-------------+
+|             |
+|             |
+|             |
+|             |
+|             |
++-------------+
+</code></pre>
+
+<p>那么如何让PsySH在项目中起作用呢？只需要在你想要debug的位置添加<code>\Psy\Shell::debug(get_defined_vars());</code>这段代码。也就是你打算插入<code>var_dump()</code>的地方。</p>
+
+<pre><code>&lt;?php
+chdir(dirname(__DIR__));
+
+require_once('vendor/autoload.php');
+
+//... a lot of code here
+
+$titledWindow = new TitledWindow($window);
+
+echo $titledWindow-&gt;render();
+
+\Psy\Shell::debug(get_defined_vars()); //we want to debug our application here!
+</code></pre>
+
+<p>当我们保存文件时，就可以看到这样的输出：</p>
+
+<pre><code>php public/decorator.php 
+
+Simple Window
++-------------+
+|             |
+|             |
+|             |
+|             |
+|             |
++-------------+
+
+Decorated Simple Window
++-------------+
+|             |
+|             |
+|             |
+|             |
+|             |
++-------------+
+
+Titled Simple Window
++-------------+
+|Title        |
++-------------+
+|             |
+|             |
+|             |
+|             |
+|             |
++-------------+
+
+Psy Shell v0.1.11 (PHP 5.5.8 — cli) by Justin Hileman
+&gt;&gt;&gt;
+</code></pre>
+
+<p>脚本的执行将被挂起，然后出现了PsySH的提示符供我们使用。我把<code>get_defined_var()</code>当作参数传进了<code>Psy\Shell::debug()</code>，所以我可以在shell里查看到所有被定义过的变量：</p>
+
+<pre><code>&gt;&gt;&gt; ls
+Variables: $_COOKIE, $_FILES, $_GET, $_POST, $_SERVER, $argc, $argv, $decoratedWindow, $titledWindow, $window
+&gt;&gt;&gt;
+</code></pre>
+
+<p>来让我们检查一下<code>$window</code>变量：</p>
+
+<pre><code>&gt;&gt;&gt; ls -al $window
+
+Class Methods:
+  render   public function render()  
+&gt;&gt;&gt;
+</code></pre>
+
+<p>PsySH贴心的一点就是我们可以在程序中对实例出来的对象中的代码进行检查。</p>
+
+<pre><code>&gt;&gt;&gt; show $window
+class Acme\Patterns\Decorator\SimpleWindow implements Acme\Patterns\Decorator\Window
+class SimpleWindow implements Window
+{
+    public function render()
+    {
+        $returnString = &lt;&lt;&lt;EOL
++-------------+
+|             |
+|             |
+|             |
+|             |
+|             |
++-------------+
+EOL;
+        return $returnString . PHP_EOL;
+    }
+}
+&gt;&gt;&gt;
+</code></pre>
+
+<p>显然，<code>$window</code>是一个SimpleWindow对象的实例，它实现了一个窗口界面。我很好奇这个窗口界面的代码是什么样的：</p>
+
+<pre><code>&gt;&gt;&gt; show Acme\Patterns\Decorator\Window
+interface Acme\Patterns\Decorator\Window
+interface Window
+{
+    public function render();
+}
+&gt;&gt;&gt;
+</code></pre>
+
+<p>为什么SimpleWindow和DecoratedWindow会有相同的输出呢？让我们检查一下<code>$DecoratedWindow</code>对象：</p>
+
+<pre><code>&gt;&gt;&gt; ls -al $decoratedWindow
+
+Class Properties:
+  $windowReference   &lt;Digitec\Patterns\Decorator\SimpleWindow #000000003643d67700000000731101b7&gt;  
+
+Class Methods:
+  __construct          public function __construct(Digitec\Patterns\Decorator\Window $windowReference)         
+  getWindowReference   public function getWindowReference()                                                    
+  render               public function render()                                                                
+  setWindowReference   public function setWindowReference(Digitec\Patterns\Decorator\Window $windowReference)  
+&gt;&gt;&gt;
+</code></pre>
+
+<p>这个对象比SimpleWindow稍微“重”了一点儿，所以代码可能很长，让我们单独看一下<code>render()</code>方法的代码：</p>
+
+<pre><code>&gt;&gt;&gt; show $decoratedWindow-&gt;render
+public function render()
+    public function render()
+    {
+        return $this-&gt;getWindowReference()-&gt;render();
+    }
+</code></pre>
+
+<p><code>getWindowReference()</code>方法被调用了，然后返回给了<code>render()</code>方法。我们来检查一下<code>getWindowReference()</code>方法的代码：</p>
+
+<pre><code>&gt;&gt;&gt; show $decoratedWindow-&gt;getWindowReference
+public function getWindowReference()
+    public function getWindowReference()
+    {
+        return $this-&gt;windowReference;
+    }
+&gt;&gt;&gt;
+</code></pre>
+
+<p>这个方法返回了对象的windowReference属性，就想我们在上面使用<code>ls -al</code>命令所看到的，这是一个<code>Acme\Patterns\Decorator\SimpleWindow</code>的实例。当然，我们可以只是看一下构造函数<code>DecoratedWindow::__construct()</code>是如何工作的，不过我们还有另一种办法来检查。</p>
+
+<h2 id="使用内置服务器debug">使用内置服务器Debug</h2>
+
+<p>很遗憾的是，使用Web服务器比如Apache httpd是不支持这种调试方式的。不管怎样，我们依然可以用PHP的内置服务器来调试：</p>
+
+<pre><code>$ cd public
+$ php -S localhost:8080
+PHP 5.5.8 Development Server started at Wed Jul 23 17:40:30 2014
+Listening on http://localhost:8080
+Document root is /home/action/workspace/lab/PsySH/public
+Press Ctrl-C to quit.
+</code></pre>
+
+<p>这台开发服务器已经开始监听8080端口的链接，所以当我们通过（[<a href="http://localhost:8080/decorator.php)]()）访问`decorator.php`时，会看到如下输出：">http://localhost:8080/decorator.php)]()）访问`decorator.php`时，会看到如下输出：</a></p>
+
+<pre><code>Psy Shell v0.1.11 (PHP 5.5.8 — cli-server) by Justin Hileman
+&gt;&gt;&gt;
+</code></pre>
+
+<p>我们就可以像刚才在CLI下一样的使用PsySH了。</p>
+
+<pre><code>&gt;&gt;&gt; ls -al
+
+Variables:
+  $_COOKIE           []                                                                              
+  $_FILES            []                                                                              
+  $_GET              []                                                                              
+  $_POST             []                                                                              
+  $_SERVER           Array(19)                                                                       
+  $decoratedWindow   &lt;Acme\Patterns\Decorator\DecoratedWindow #0000000031ef2e3e000000003c2d3a90&gt;  
+  $titledWindow      &lt;Acme\Patterns\Decorator\TitledWindow #0000000031ef2e39000000003c2d3a90&gt;     
+  $window            &lt;Acme\Patterns\Decorator\SimpleWindow #0000000031ef2e3f000000003c2d3a90&gt;     
+  $_                 null                                                                            
+&gt;&gt;&gt; exit
+Exit:  Goodbye.
+</code></pre>
+
+<h2 id="使用单元测试进行debug">使用单元测试进行Debug</h2>
+
+<p>作为一个合格的开发者，你应该为自己的代码编写单元测试，来保证它们能够如期运行。在这个项目文件中你可以找到<code>tests</code>文件夹，如果你安装了phpUnit，你就可以在其中运行测试。</p>
+
+<pre><code>cd tests/
+phpunit
+PHPUnit 4.0.14 by Sebastian Bergmann.
+
+Configuration read from /home/action/workspace/lab/PsySH/tests/phpunit.xml
+
+...F+-------------+
+|Title        |
+
+
+Time: 66 ms, Memory: 4.50Mb
+
+There was 1 failure:
+
+1) AcmeTest\Patterns\Decorator\TitledWindowTest::testAddTitle
+Failed asserting that true is false.
+
+/home/action/workspace/lab/PsySH/tests/Patterns/Decorator/TitledWindowTest.php:46
+                                     
+FAILURES!                            
+Tests: 4, Assertions: 7, Failures: 1.
+</code></pre>
+
+<p>当测试不通过的时候，你代码也许看上去完美无暇无懈可击。但是我们可以进一步检测出问题的测试：</p>
+
+<pre><code>$ phpunit --verbose --debug --filter=TitledWindowTest::testAddTitle
+PHPUnit 4.0.14 by Sebastian Bergmann.
+
+Configuration read from /home/action/workspace/lab/PsySH/tests/phpunit.xml
+
+
+Starting test 'AcmeTest\Patterns\Decorator\TitledWindowTest::testAddTitle'.
+F+-------------+
+|Title        |
+
+
+Time: 60 ms, Memory: 4.25Mb
+
+There was 1 failure:
+
+1) AcmeTest\Patterns\Decorator\TitledWindowTest::testAddTitle
+Failed asserting that true is false.
+
+/home/action/workspace/lab/PsySH/tests/Patterns/Decorator/TitledWindowTest.php:46
+                                     
+FAILURES!                            
+Tests: 1, Assertions: 1, Failures: 1.
+</code></pre>
+
+<p>我们知道了错误出现的文件，行数和哪一项测试，于是来看一下<code>TitledWindowTest.php</code>文件</p>
+
+<pre><code>&lt;?php
+namespace AcmeTest\Patterns\Decorator;
+
+use PHPUnit_Framework_TestCase;
+use Acme\Patterns\Decorator\TitledWindow;
+use ReflectionMethod;
+
+
+class TitledWindowTest extends PHPUnit_Framework_TestCase 
+{
+    public function testRender()
+    {
+        /* some test code here */
+        
+    }
+    
+    public function testAddTitle()
+    {
+        $renderString = 'bar';
+        
+        $window = $this-&gt;getMock('Acme\Patterns\Decorator\SimpleWindow');
+        $window-&gt;expects($this-&gt;any())-&gt;method('render')-&gt;will($this-&gt;returnValue($renderString));
+        
+        $titledWindow = new TitledWindow($window);
+        
+        $reflectionMethod = new ReflectionMethod($titledWindow, 'addTitle');
+        $reflectionMethod-&gt;setAccessible(true);
+        
+        $rs = $reflectionMethod-&gt;invoke($titledWindow);
+        
+        $this-&gt;assertFalse(empty($rs));
+        
+    }
+}
+</code></pre>
+
+<p>若是你并不熟悉phpUnit，不要在这些代码上过多的花费时间。总而言之，我针对<code>TitledWindow::addTitle()</code>方法设置了一些测试，然后期望得到一个非空的值。</p>
+
+<p>那么，我们如何使用PsySH来检查运行的结果呢？只要像之前那样添加<code>Shell::debug()</code>方法就好了。</p>
+
+<pre><code>&lt;?php
+namespace DigitecTest\Patterns\Decorator;
+
+use PHPUnit_Framework_TestCase;
+use Digitec\Patterns\Decorator\TitledWindow;
+use ReflectionMethod;
+
+class TitledWindowTest extends PHPUnit_Framework_TestCase 
+{
+    public function testRender()
+    {
+        /* Some test code here */
+    }
+    
+    public function testAddTitle()
+    {
+        $renderString = 'bar';
+        
+        $window = $this-&gt;getMock('Digitec\Patterns\Decorator\SimpleWindow');
+        $window-&gt;expects($this-&gt;any())-&gt;method('render')-&gt;will($this-&gt;returnValue($renderString));
+        
+        $titledWindow = new TitledWindow($window);
+        
+        $reflectionMethod = new ReflectionMethod($titledWindow, 'addTitle');
+        $reflectionMethod-&gt;setAccessible(true);
+        
+        $rs = $reflectionMethod-&gt;invoke($titledWindow);
+        
+        \Psy\Shell::debug(get_defined_vars());
+        
+        $this-&gt;assertFalse(empty($rs));
+        
+    }
+}
+</code></pre>
+
+<p>于是就开始吧！</p>
+
+<pre><code>$ phpunit --verbose --debug --filter=TitledWindowTest::testAddTitle
+PHPUnit 4.0.14 by Sebastian Bergmann.
+
+Configuration read from /home/action/workspace/lab/PsySH/tests/phpunit.xml
+
+
+Starting test 'AcmeTest\Patterns\Decorator\TitledWindowTest::testAddTitle'.
+Psy Shell v0.1.11 (PHP 5.5.8 — cli) by Justin Hileman
+&gt;&gt;&gt;
+</code></pre>
+
+<p><code>$re</code>此时应该被赋值了一个字符串，来让我们看一下是否如此:</p>
+
+<pre><code>&gt;&gt;&gt; $rs
+=&gt; null
+</code></pre>
+
+<p>NULL值，难怪单元测试失败了。再让我们回头看一下<code>TitledWindow::addTitle()</code>的代码。如果我们执行<code>ls</code>命令，可以看到<code>$titleWindow</code>对象中的这个方法。</p>
+
+<pre><code>&gt;&gt;&gt; show $titledWindow-&gt;addTitle
+protected function addTitle()
+    protected function addTitle()
+    {
+        $returnString = &lt;&lt;&lt;EOL
++-------------+
+|Title        |
+EOL;
+        echo $returnString . PHP_EOL;
+    }
+&gt;&gt;&gt;
+</code></pre>
+
+<p>这就是出bug的地方，这个方法应该return一个值而不是直接echo出来。尽管这个程序看上去运行正常，但是通过单元测试和PsySH我还是发现了一个缺陷并修复了它。</p>
+
+<h2 id="结论">结论</h2>
+
+<p>此篇文章并不打算详尽的挖掘PsySH的全部潜能。还有其他很Cool的功能（比如‘doc’）值得你尝试一下。单独使用PsySH也许不是非常有用，但是如果结合其他工具和你丰富的debug经验，它可以成为一项宝贵的资源。</p>
+
+    </article>
+
+    
+<ul class="article-share">
+  <li>
+    <a href="https://twitter.com/share" class="twitter-share-button">Tweet</a> <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
+  </li>
+  <li>
+    <div class="fb-share-button" data-href="https://example.com/posts/%E4%BA%A4%E4%BA%92%E5%BC%8F%E7%9A%84debug%E5%B7%A5%E5%85%B7psysh/" data-layout="button_count" data-action="like" data-size="small" data-show-faces="true" data-share="true"></div>
+    <div id="fb-root"></div>
+    <script>(function(d, s, id) {
+      var js, fjs = d.getElementsByTagName(s)[0];
+      if (d.getElementById(id)) return;
+      js = d.createElement(s); js.id = id;
+      js.src = "//connect.facebook.net/ja_JP/sdk.js#xfbml=1&version=v2.10";
+      fjs.parentNode.insertBefore(js, fjs);
+    }(document, 'script', 'facebook-jssdk'));</script>
+  </li>
+  <li>
+    <a href="http://b.hatena.ne.jp/entry/" class="hatena-bookmark-button" data-hatena-bookmark-layout="basic-label-counter" data-hatena-bookmark-lang="en" title="このエントリーをはてなブックマークに追加"><img src="https://b.st-hatena.com/images/entry-button/button-only@2x.png" alt="このエントリーをはてなブックマークに追加" width="20" height="20" style="border: none;" /></a><script src="https://b.st-hatena.com/js/bookmark_button.js" charset="utf-8" async="async"></script>
+  </li>
+  <li>
+    <a data-pocket-label="pocket" data-pocket-count="horizontal" class="pocket-btn" data-lang="en"></a>
+    <script>!function(d,i){if(!d.getElementById(i)){var j=d.createElement("script");j.id=i;j.src="https://widgets.getpocket.com/v1/j/btn.js?v=1";var w=d.getElementById(i);d.body.appendChild(j);}}(document,"pocket-btn-js");</script>
+  </li>
+</ul>
+
+    <div class="disqus-comments">
+      <div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+    
+    
+    
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "Shortname" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+    </div>
+
+    <ul class="pager article-pager">
+      <li class="pager-newer">
+          <a href="/posts/%E4%B8%BB%E4%BB%8E%E5%90%8C%E6%AD%A5%E5%8E%9F%E7%90%86/" data-toggle="tooltip" data-placement="top" title="主从同步原理">&lt; Newer</a>
+      </li>
+      <li class="pager-older">
+        <a href="/posts/%E5%BE%AE%E4%BF%A1%E6%8E%A5%E5%8F%A3%E5%88%9B%E5%BB%BA%E6%8C%89%E9%92%AE%E6%97%B6%E7%9A%84%E4%B8%AD%E6%96%87%E7%BC%96%E7%A0%81%E9%97%AE%E9%A2%98/" data-toggle="tooltip" data-placement="top" title="微信接口创建按钮时的中文编码问题">Older &gt;</a>
+      </li>
+    </ul>
+  </div>
+
+
+<div class="site-footer">
+  <div class="copyright">&copy; Copyright 2017 Symo</div>
+  <ul class="site-footer-items">
+  </ul>
+  <div class="powerdby">
+    Powered by <a href="https://gohugo.io/">Hugo</a> and <a href="https://github.com/taikii/whiteplain">Whiteplain</a>
+  </div>
+</div>
+
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+	(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+	m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+	})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+	ga('create', 'UA-135933944-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+
+
+</body>
+</html>

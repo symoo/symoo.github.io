@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes" ?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>symo&#39;s blog</title>
-    <link>https://example.com/</link>
-    <description>Recent content on symo&#39;s blog</description>
+    <title>Posts on symo&#39;s blog</title>
+    <link>https://example.com/posts/</link>
+    <description>Recent content in Posts on symo&#39;s blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-cn</language>
     <copyright>&amp;copy; Copyright 2017 Symo</copyright>
     <lastBuildDate>Sun, 06 May 2018 18:45:05 +0800</lastBuildDate>
     
-	<atom:link href="https://example.com/index.xml" rel="self" type="application/rss+xml" />
+	<atom:link href="https://example.com/posts/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>

@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+  <title>Apache 开启 Rewrite 模块 - symo&#39;s blog</title>
+  <meta property="og:title" content="Apache 开启 Rewrite 模块 - symo&#39;s blog" />
+  <meta name="twitter:title" content="Apache 开启 Rewrite 模块 - symo&#39;s blog" />
+  <meta name="description" content="开启Rewrite模块 修改Apache主配置文件  去掉LoadModule rewrite_module modules/mod_rewrite.so 前的# 修改&lt;Directory&gt;配置段为Options Indexes FollowSymLinks 如果想要使用.htaccess文件,将网站目录配置段的AllowOverride改成All  .htaccess文件  .htaccess⽂件(或者&rdquo;分布式配置⽂件&rdquo;）提供了针对目录改变配置的方法， 即，在一个特定的文档目录中放置一个包含一个或多个指令的文件， 以作用于此目录及其所有子目录。  RewriteEngine  打开或关闭运行时刻的重写引擎 RewriteEngine 为重写引擎定义规则 RewriteRule RewriteCond指令定义了一个规则的调价,在一个RewriteRule指令之前有一个或多个RewriteCond指令 RewriteCond  RewriteCond参数 &#39;-d&#39; 是一个目录[Directory] &#39;-f&#39; 是一个常规的文件[File]
+通过rewrite实现404定义 RewriteEngine On RewriteCond %{REQUEST_FILENAME} !-f RewriteCond %{REQUEST_FILENAME} !-d RewriteRule .? /404.php [L]  RewriteRule 参数  强制当前URL为被禁止的,即,立刻反馈一个HTTP响应代码403(被禁止的) &#39;forbiddenF&#39; (强制URL为被禁止的forbidden) 它使Pattern忽略大小写,即在Pattern与当前URl匹配时,&lsquo;A-Z&rsquo;和&rsquo;a-z&rsquo;没有区别 &#39;nocaseNC&#39; (忽略大小写 no case) 立即停止重写操作,并不再应用其他重写规则.这个标记可以阻止当前已被重写的URl被其后续的规则所重写 &#39;lastL&#39; (最后一个URL规则的重写 last)  伪静态操作 RewriteEngine On RewriteRule ^/?news_(\d&#43;).html news.php?nid=$1 [NC,L]  防止图片盗链 如果不是从本网站请求图片,替换成logo.">
+  <meta property="og:description" content="开启Rewrite模块 修改Apache主配置文件  去掉LoadModule rewrite_module modules/mod_rewrite.so 前的# 修改&lt;Directory&gt;配置段为Options Indexes FollowSymLinks 如果想要使用.htaccess文件,将网站目录配置段的AllowOverride改成All  .htaccess文件  .htaccess⽂件(或者&rdquo;分布式配置⽂件&rdquo;）提供了针对目录改变配置的方法， 即，在一个特定的文档目录中放置一个包含一个或多个指令的文件， 以作用于此目录及其所有子目录。  RewriteEngine  打开或关闭运行时刻的重写引擎 RewriteEngine 为重写引擎定义规则 RewriteRule RewriteCond指令定义了一个规则的调价,在一个RewriteRule指令之前有一个或多个RewriteCond指令 RewriteCond  RewriteCond参数 &#39;-d&#39; 是一个目录[Directory] &#39;-f&#39; 是一个常规的文件[File]
+通过rewrite实现404定义 RewriteEngine On RewriteCond %{REQUEST_FILENAME} !-f RewriteCond %{REQUEST_FILENAME} !-d RewriteRule .? /404.php [L]  RewriteRule 参数  强制当前URL为被禁止的,即,立刻反馈一个HTTP响应代码403(被禁止的) &#39;forbiddenF&#39; (强制URL为被禁止的forbidden) 它使Pattern忽略大小写,即在Pattern与当前URl匹配时,&lsquo;A-Z&rsquo;和&rsquo;a-z&rsquo;没有区别 &#39;nocaseNC&#39; (忽略大小写 no case) 立即停止重写操作,并不再应用其他重写规则.这个标记可以阻止当前已被重写的URl被其后续的规则所重写 &#39;lastL&#39; (最后一个URL规则的重写 last)  伪静态操作 RewriteEngine On RewriteRule ^/?news_(\d&#43;).html news.php?nid=$1 [NC,L]  防止图片盗链 如果不是从本网站请求图片,替换成logo.">
+  <meta name="twitter:description" content="开启Rewrite模块 修改Apache主配置文件  去掉LoadModule rewrite_module modules/mod_rewrite.so 前的# 修改&lt;Directory&gt;配置段为Options Indexes FollowSymLinks 如果想要使用.htaccess文件,将网站目录配置段的AllowOverride改成All  .htaccess …">
+  <meta name="author" content="Your name"/>
+  <meta property="og:site_name" content="symo&#39;s blog" />
+  <meta property="og:url" content="https://example.com/posts/%E5%BC%80%E5%90%AFrewrite%E6%A8%A1%E5%9D%97/" />
+  <meta property="og:type" content="article" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="generator" content="Hugo 0.53" />
+
+  <link rel="stylesheet" href="/css/style.css" media="all" />
+  <link rel="stylesheet" href="/css/syntax.css" media="all" />
+  <link rel="stylesheet" href="/css/custom.css" media="all" />
+
+  <script src="/js/script.js"></script>
+  <script src="/js/custom.js"></script>
+  <script defer src="/js/fontawesome.js"></script>
+</head>
+
+<body>
+
+<header class="site-header">
+  <nav class="site-navi">
+    <h1 class="site-title"><a href="/">symo&#39;s blog</a></h1>
+    <ul class="site-navi-items">
+      <li class="site-navi-item-categories"><a href="/posts/" title="Posts">Posts</a></li>
+      <li class="site-navi-item-tags"><a href="/tags/" title="Tags">Tags</a></li>
+    </ul>
+  </nav>
+</header>
+<hr class="site-header-bottom">
+
+  <div class="main" role="main">
+    <article class="article">
+      
+      
+      <h1 class="article-title">Apache 开启 Rewrite 模块</h1>
+      
+      <hr class="article-title-bottom">
+      <ul class="article-meta">
+        <li class="article-meta-date"><time>March 7, 2017</time></li>
+      </ul>
+      
+      
+
+<hr />
+
+<h2 id="开启rewrite模块">开启Rewrite模块</h2>
+
+<h3 id="修改apache主配置文件">修改Apache主配置文件</h3>
+
+<ul>
+<li>去掉<code>LoadModule rewrite_module modules/mod_rewrite.so</code> 前的#</li>
+<li>修改<code>&lt;Directory&gt;</code>配置段为<code>Options Indexes FollowSymLinks</code></li>
+<li>如果想要使用.htaccess文件,将网站目录配置段的<code>AllowOverride</code>改成<code>All</code></li>
+</ul>
+
+<h3 id="htaccess文件">.htaccess文件</h3>
+
+<ul>
+<li>.htaccess⽂件(或者&rdquo;分布式配置⽂件&rdquo;）提供了针对目录改变配置的方法， 即，在一个特定的文档目录中放置一个包含一个或多个指令的文件， 以作用于此目录及其所有子目录。</li>
+</ul>
+
+<h3 id="rewriteengine">RewriteEngine</h3>
+
+<ul>
+<li>打开或关闭运行时刻的重写引擎
+<code>RewriteEngine</code></li>
+<li>为重写引擎定义规则
+<code>RewriteRule</code></li>
+<li>RewriteCond指令定义了一个规则的调价,在一个RewriteRule指令之前有一个或多个RewriteCond指令
+<code>RewriteCond</code></li>
+</ul>
+
+<h3 id="rewritecond参数">RewriteCond参数</h3>
+
+<p><code>'-d'</code> 是一个目录[Directory]
+<code>'-f'</code> 是一个常规的文件[File]</p>
+
+<h3 id="通过rewrite实现404定义">通过rewrite实现404定义</h3>
+
+<pre><code>RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule .? /404.php [L]
+</code></pre>
+
+<h3 id="rewriterule-参数">RewriteRule 参数</h3>
+
+<ul>
+<li>强制当前URL为被禁止的,即,立刻反馈一个HTTP响应代码403(被禁止的)
+<code>'forbiddenF'</code> (强制URL为被禁止的forbidden)</li>
+<li>它使Pattern忽略大小写,即在Pattern与当前URl匹配时,&lsquo;A-Z&rsquo;和&rsquo;a-z&rsquo;没有区别
+<code>'nocaseNC'</code> (忽略大小写 no case)</li>
+<li>立即停止重写操作,并不再应用其他重写规则.这个标记可以阻止当前已被重写的URl被其后续的规则所重写
+<code>'lastL'</code> (最后一个URL规则的重写 last)</li>
+</ul>
+
+<h3 id="伪静态操作">伪静态操作</h3>
+
+<pre><code>RewriteEngine On
+RewriteRule ^/?news_(\d+).html news.php?nid=$1 [NC,L]
+</code></pre>
+
+<h3 id="防止图片盗链">防止图片盗链</h3>
+
+<p>如果不是从本网站请求图片,替换成logo.png</p>
+
+<pre><code>RewriteEngine On
+RewriteCond ${HTTP_REFERER} !^$
+RewriteCond ${HTTP_REFERER} !192.168.1.100 [NC]
+RewriteRule .(jpg|png)$ logo.png
+</code></pre>
+
+<p>直接返回403无权操作</p>
+
+<pre><code>RewriteEngine On
+RewriteCond ${HTTP_REFERER} !^$
+RewriteCond ${HTTP_REFERER} !192.168.1.100 [NC]
+RewriteRule \.(gif|jpg|jpeg\png\bmp) - [F]
+</code></pre>
+
+<h3 id="隐藏网站主入口文件">隐藏网站主入口文件</h3>
+
+<pre><code>RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule (.*) index.php&amp;1    
+</code></pre>
+
+    </article>
+
+    
+<ul class="article-share">
+  <li>
+    <a href="https://twitter.com/share" class="twitter-share-button">Tweet</a> <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
+  </li>
+  <li>
+    <div class="fb-share-button" data-href="https://example.com/posts/%E5%BC%80%E5%90%AFrewrite%E6%A8%A1%E5%9D%97/" data-layout="button_count" data-action="like" data-size="small" data-show-faces="true" data-share="true"></div>
+    <div id="fb-root"></div>
+    <script>(function(d, s, id) {
+      var js, fjs = d.getElementsByTagName(s)[0];
+      if (d.getElementById(id)) return;
+      js = d.createElement(s); js.id = id;
+      js.src = "//connect.facebook.net/ja_JP/sdk.js#xfbml=1&version=v2.10";
+      fjs.parentNode.insertBefore(js, fjs);
+    }(document, 'script', 'facebook-jssdk'));</script>
+  </li>
+  <li>
+    <a href="http://b.hatena.ne.jp/entry/" class="hatena-bookmark-button" data-hatena-bookmark-layout="basic-label-counter" data-hatena-bookmark-lang="en" title="このエントリーをはてなブックマークに追加"><img src="https://b.st-hatena.com/images/entry-button/button-only@2x.png" alt="このエントリーをはてなブックマークに追加" width="20" height="20" style="border: none;" /></a><script src="https://b.st-hatena.com/js/bookmark_button.js" charset="utf-8" async="async"></script>
+  </li>
+  <li>
+    <a data-pocket-label="pocket" data-pocket-count="horizontal" class="pocket-btn" data-lang="en"></a>
+    <script>!function(d,i){if(!d.getElementById(i)){var j=d.createElement("script");j.id=i;j.src="https://widgets.getpocket.com/v1/j/btn.js?v=1";var w=d.getElementById(i);d.body.appendChild(j);}}(document,"pocket-btn-js");</script>
+  </li>
+</ul>
+
+    <div class="disqus-comments">
+      <div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+    
+    
+    
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "Shortname" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+    </div>
+
+    <ul class="pager article-pager">
+      <li class="pager-newer">
+          <a href="/posts/debian8-%E5%AE%89%E8%A3%85-kernel4.9-%E5%90%AF%E7%94%A8-bbr/" data-toggle="tooltip" data-placement="top" title="Debian8 安装 kernel4.9 启用 BBR">&lt; Newer</a>
+      </li>
+      <li class="pager-older">
+        <a href="/posts/vim%E7%9A%84%E7%AE%80%E5%8D%95%E5%85%A5%E9%97%A8/" data-toggle="tooltip" data-placement="top" title="Apt-get 强制使用 IPv4">Older &gt;</a>
+      </li>
+    </ul>
+  </div>
+
+
+<div class="site-footer">
+  <div class="copyright">&copy; Copyright 2017 Symo</div>
+  <ul class="site-footer-items">
+  </ul>
+  <div class="powerdby">
+    Powered by <a href="https://gohugo.io/">Hugo</a> and <a href="https://github.com/taikii/whiteplain">Whiteplain</a>
+  </div>
+</div>
+
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+	(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+	m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+	})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+	ga('create', 'UA-135933944-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+
+
+</body>
+</html>

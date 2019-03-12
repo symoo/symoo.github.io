@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+  <title>主从同步原理 - symo&#39;s blog</title>
+  <meta property="og:title" content="主从同步原理 - symo&#39;s blog" />
+  <meta name="twitter:title" content="主从同步原理 - symo&#39;s blog" />
+  <meta name="description" content="主从同步原理  主服务器验证连接 主服务器为从服务器开启一个线程 从服务器将主服务器日志的偏移位告诉主服务器 主服务器检查该值是否小于当前二进制日志偏移位 如果小于,则通知服务器来取数据 从服务器持续从主服务器取数据,直至取完,这时,从服务器线程进入睡眠,主服务器线程同时进入睡眠 当主服务器有更新时,主服务器线程被激活,并将二进制日志推送给从服务器,并通知从服务器进入工作状态 从服务器SQL线程执行二进制日志,随后进入睡眠状态  配置实验环境  下载mysql安装包 # wget http://mirrors.sohu.com/mysql/MySQL-5.5/MySQL-server-5.5.38-1.rhel5.i386.rpm # wget http://mirrors.sohu.com/mysql/MySQL-5.5/MySQL-client-5.5.38-1.rhel5.i386.rpm 执行安装 # rpm -ivh MySQL-server-5.5.36-1.rhel5.i386.rpm # rpm -ivh MySQL-client-5.5.36-1.rhel5.i386.rpm 错误处理 缺少Perl包 error: Failed dependencies:/usr/bin/perl is needed by MySQL-server-5.5.36-1.rhel5.i386 安装Perl即可 # yum install -y perl
+与原先版本冲突 查看系统已经安装的版本 # rpm -qa | grep mysql 卸载 # rpm -e --nodeps mysql-libs-5.1.71-1.el6.i686 4.复制配置文件 # cp /usr/share/mysql/my-large.cnf /etc/my.cnf 启动服务 # service mysql start  设置主服务器 修改my.">
+  <meta property="og:description" content="主从同步原理  主服务器验证连接 主服务器为从服务器开启一个线程 从服务器将主服务器日志的偏移位告诉主服务器 主服务器检查该值是否小于当前二进制日志偏移位 如果小于,则通知服务器来取数据 从服务器持续从主服务器取数据,直至取完,这时,从服务器线程进入睡眠,主服务器线程同时进入睡眠 当主服务器有更新时,主服务器线程被激活,并将二进制日志推送给从服务器,并通知从服务器进入工作状态 从服务器SQL线程执行二进制日志,随后进入睡眠状态  配置实验环境  下载mysql安装包 # wget http://mirrors.sohu.com/mysql/MySQL-5.5/MySQL-server-5.5.38-1.rhel5.i386.rpm # wget http://mirrors.sohu.com/mysql/MySQL-5.5/MySQL-client-5.5.38-1.rhel5.i386.rpm 执行安装 # rpm -ivh MySQL-server-5.5.36-1.rhel5.i386.rpm # rpm -ivh MySQL-client-5.5.36-1.rhel5.i386.rpm 错误处理 缺少Perl包 error: Failed dependencies:/usr/bin/perl is needed by MySQL-server-5.5.36-1.rhel5.i386 安装Perl即可 # yum install -y perl
+与原先版本冲突 查看系统已经安装的版本 # rpm -qa | grep mysql 卸载 # rpm -e --nodeps mysql-libs-5.1.71-1.el6.i686 4.复制配置文件 # cp /usr/share/mysql/my-large.cnf /etc/my.cnf 启动服务 # service mysql start  设置主服务器 修改my.">
+  <meta name="twitter:description" content="主从同步原理  主服务器验证连接 主服务器为从服务器开启一个线程 从服务器将主服务器日志的偏移位告诉主服务器 主服务器检查该值是否小于当前二进制日志偏移位 如果小于,则通知服务器来取数据 从服务器持续从主服务器取数据,直至取完,这时,从服务器线程进入睡眠,主服务器线程同时进入睡眠 当主服务器有更新时,主服务器线程被激活,并将二进制日志推送给从服务器,并通知从服务器进入工作状态 从服务器SQL线程执 …">
+  <meta name="author" content="Your name"/>
+  <meta property="og:site_name" content="symo&#39;s blog" />
+  <meta property="og:url" content="https://example.com/posts/%E4%B8%BB%E4%BB%8E%E5%90%8C%E6%AD%A5%E5%8E%9F%E7%90%86/" />
+  <meta property="og:type" content="article" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="generator" content="Hugo 0.53" />
+
+  <link rel="stylesheet" href="/css/style.css" media="all" />
+  <link rel="stylesheet" href="/css/syntax.css" media="all" />
+  <link rel="stylesheet" href="/css/custom.css" media="all" />
+
+  <script src="/js/script.js"></script>
+  <script src="/js/custom.js"></script>
+  <script defer src="/js/fontawesome.js"></script>
+</head>
+
+<body>
+
+<header class="site-header">
+  <nav class="site-navi">
+    <h1 class="site-title"><a href="/">symo&#39;s blog</a></h1>
+    <ul class="site-navi-items">
+      <li class="site-navi-item-categories"><a href="/posts/" title="Posts">Posts</a></li>
+      <li class="site-navi-item-tags"><a href="/tags/" title="Tags">Tags</a></li>
+    </ul>
+  </nav>
+</header>
+<hr class="site-header-bottom">
+
+  <div class="main" role="main">
+    <article class="article">
+      
+      
+      <h1 class="article-title">主从同步原理</h1>
+      
+      <hr class="article-title-bottom">
+      <ul class="article-meta">
+        <li class="article-meta-date"><time>March 7, 2017</time></li>
+      </ul>
+      
+      
+
+<hr />
+
+<h2 id="主从同步原理">主从同步原理</h2>
+
+<ol>
+<li>主服务器验证连接</li>
+<li>主服务器为从服务器开启一个线程</li>
+<li>从服务器将主服务器日志的偏移位告诉主服务器</li>
+<li>主服务器检查该值是否小于当前二进制日志偏移位</li>
+<li>如果小于,则通知服务器来取数据</li>
+<li>从服务器持续从主服务器取数据,直至取完,这时,从服务器线程进入睡眠,主服务器线程同时进入睡眠</li>
+<li>当主服务器有更新时,主服务器线程被激活,并将二进制日志推送给从服务器,并通知从服务器进入工作状态</li>
+<li>从服务器SQL线程执行二进制日志,随后进入睡眠状态</li>
+</ol>
+
+<h2 id="配置实验环境">配置实验环境</h2>
+
+<ol>
+<li>下载mysql安装包
+<code># wget http://mirrors.sohu.com/mysql/MySQL-5.5/MySQL-server-5.5.38-1.rhel5.i386.rpm</code>
+<code># wget http://mirrors.sohu.com/mysql/MySQL-5.5/MySQL-client-5.5.38-1.rhel5.i386.rpm</code></li>
+<li>执行安装
+<code># rpm -ivh MySQL-server-5.5.36-1.rhel5.i386.rpm</code>
+<code># rpm -ivh MySQL-client-5.5.36-1.rhel5.i386.rpm</code></li>
+<li>错误处理
+<strong>缺少Perl包</strong>
+<code>error: Failed dependencies:/usr/bin/perl is needed by MySQL-server-5.5.36-1.rhel5.i386</code>
+安装Perl即可
+<code># yum install -y perl</code><br />
+<strong>与原先版本冲突</strong>
+查看系统已经安装的版本
+<code># rpm -qa | grep mysql</code>
+卸载
+<code># rpm -e --nodeps mysql-libs-5.1.71-1.el6.i686</code>
+4.复制配置文件
+<code># cp /usr/share/mysql/my-large.cnf /etc/my.cnf</code></li>
+<li>启动服务
+<code># service mysql start</code></li>
+</ol>
+
+<h2 id="设置主服务器">设置主服务器</h2>
+
+<h3 id="修改my-cnf配置文件如下">修改my.cnf配置文件如下</h3>
+
+<ol>
+<li><code>log-bin=mysql-bin</code>
+[必须]服务器ID,必须唯一,通常取IP最后一位</li>
+<li><code>server-id=1</code>
+[必须]服务器ID,必须唯一,通常取IP最后一位</li>
+<li><code>binlog-do-db=testdb</code>
+[新增加]设置binlog记录的数据库,多个写多条</li>
+<li><code>binlog-ignore-db=testdb1</code>
+[非必须]设置binlog不记录的数据库,多个写多条</li>
+<li><code>expire-logs-days=10</code>
+设置binlog保存的天数为,默认保存30天</li>
+</ol>
+
+<h3 id="添加登录主服务器的账号">添加登录主服务器的账号</h3>
+
+<h4 id="创建用户并授权">创建用户并授权</h4>
+
+<p><code>mysql&gt; grant replication slave on *.* to 'slave'@'%' identified by 'admin888';</code></p>
+
+<ul>
+<li><code>replication slave</code> 授权为从服务器复制操作</li>
+<li><code>on *.*</code> 表示所有库中的所有表</li>
+<li><code>'slave'@'%'</code>用户名为<code>slave</code>,来源<code>%</code>表示不限制</li>
+<li><code>identified by</code> 设置密码</li>
+</ul>
+
+<h4 id="刷新授权表">刷新授权表</h4>
+
+<p><code>mysql&gt; flush privileges;</code></p>
+
+<h4 id="查看用户">查看用户</h4>
+
+<p><code>mysql&gt; select user,host from mysql.user;</code></p>
+
+<h4 id="锁定主服务器所有表">锁定主服务器所有表</h4>
+
+<p><code>mysql&gt; flush tables with read lock;</code></p>
+
+<h4 id="备份所有数据库数据">备份所有数据库数据</h4>
+
+<p><code># mysqldump -uroot -p testdb&gt;testdb.sql</code>
+ 导出<code>testdb</code>数据库当当前文件夹下的<code>testdb.sql</code>文件</p>
+
+<h4 id="复制数据到slave">复制数据到slave</h4>
+
+<p><code># scp testdb.sql root@192.168.1.101:/root</code></p>
+
+<h4 id="查看主服务器状态">查看主服务器状态</h4>
+
+<p><code>mysql&gt; show master status</code></p>
+
+<pre><code>+------------------+----------+--------------+------------------+
+| File             | Position | Binlog_Do_DB | Binlog_Ignore_DB |
++------------------+----------+--------------+------------------+
+| mysql-bin.000009 |      474 | hd           |                  |
++------------------+----------+--------------+------------------+
+</code></pre>
+
+<p>1 row in set (0.00 sec)</p>
+
+<h2 id="设置从服务器">设置从服务器</h2>
+
+<h3 id="修改mysql配置文件">修改mysql配置文件</h3>
+
+<p><code># vim /etc/my.cnf</code></p>
+
+<pre><code># 启用二进制文件
+log-bin=mysql-bin
+# 不能与主服务器相同,通常使用IP最后一位
+server-id=2
+</code></pre>
+
+<h3 id="重启mysql服务">重启mysql服务</h3>
+
+<p><code>service mysql restart</code>
+###导入从主服务器复制的sql文件
+<code># mysql -uroot -padmin888 testdb&lt;testdb.sql</code>
+&gt; 如果出现错误 <code>ERROR! MySQL server PID file could not be found!</code>
+&gt; 执行 <code># rm -rf /var/lib/mysql/mysql-bin.index</code></p>
+
+<h3 id="同步binlog日志">同步binlog日志</h3>
+
+<p><code>mysql&gt; change master to master_host='192.168.1.101',master_user='slave',master_password='admin888',master_log_file='mysql-bin.000009',master_log_pos=474;</code></p>
+
+<h3 id="开启从服务器-slave-同步">开启从服务器(slave)同步</h3>
+
+<p><code>mysql&gt; start slave;</code></p>
+
+<h3 id="解除主服务器-master-表锁定">解除主服务器(master)表锁定</h3>
+
+<p><code>mysql&gt; unlock tables;</code></p>
+
+<h3 id="同步测试">同步测试</h3>
+
+<ul>
+<li><p>在主服务器上插入数据,观察从服务器是否已经同步</p>
+
+<h4 id="主服务器查看状态">主服务器查看状态</h4>
+
+<p><code>mysql&gt; show processlist\G</code></p>
+
+<pre><code>*************************** 1. row ***************************
+ Id: 4
+User: slave
+Host: 192.168.100.103:41468
+ db: NULL
+Command: Binlog Dump
+Time: 2960
+State: Master has sent all binlog to slave; waiting for binlog to be updated
+Info: NULL
+</code></pre>
+
+<p>####从服务器查看状态
+<code>mysql&gt; show slave status;</code></p>
+
+<pre><code>*************************** 1. row ***************************
+           Slave_IO_State: Waiting for master to send event
+              Master_Host: 192.168.100.101
+              Master_User: slave
+              Master_Port: 3306
+            Connect_Retry: 60
+          Master_Log_File: mysql-bin.000009
+      Read_Master_Log_Pos: 474
+           Relay_Log_File: symo-centos-relay-bin.000009
+            Relay_Log_Pos: 253
+    Relay_Master_Log_File: mysql-bin.000009
+         Slave_IO_Running: Yes
+        Slave_SQL_Running: Yes
+          Replicate_Do_DB: 
+      Replicate_Ignore_DB: 
+       Replicate_Do_Table: 
+   Replicate_Ignore_Table: 
+  Replicate_Wild_Do_Table: 
+Replicate_Wild_Ignore_Table: 
+               Last_Errno: 0
+               Last_Error: 
+             Skip_Counter: 0
+      Exec_Master_Log_Pos: 474
+          Relay_Log_Space: 415
+          Until_Condition: None
+           Until_Log_File: 
+            Until_Log_Pos: 0
+       Master_SSL_Allowed: No
+       Master_SSL_CA_File: 
+       Master_SSL_CA_Path: 
+          Master_SSL_Cert: 
+        Master_SSL_Cipher: 
+           Master_SSL_Key: 
+    Seconds_Behind_Master: 0
+Master_SSL_Verify_Server_Cert: No
+            Last_IO_Errno: 0
+            Last_IO_Error: 
+           Last_SQL_Errno: 0
+           Last_SQL_Error: 
+Replicate_Ignore_Server_Ids: 
+         Master_Server_Id: 1
+1 row in set (0.00 sec)
+</code></pre></li>
+</ul>
+
+    </article>
+
+    
+<ul class="article-share">
+  <li>
+    <a href="https://twitter.com/share" class="twitter-share-button">Tweet</a> <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
+  </li>
+  <li>
+    <div class="fb-share-button" data-href="https://example.com/posts/%E4%B8%BB%E4%BB%8E%E5%90%8C%E6%AD%A5%E5%8E%9F%E7%90%86/" data-layout="button_count" data-action="like" data-size="small" data-show-faces="true" data-share="true"></div>
+    <div id="fb-root"></div>
+    <script>(function(d, s, id) {
+      var js, fjs = d.getElementsByTagName(s)[0];
+      if (d.getElementById(id)) return;
+      js = d.createElement(s); js.id = id;
+      js.src = "//connect.facebook.net/ja_JP/sdk.js#xfbml=1&version=v2.10";
+      fjs.parentNode.insertBefore(js, fjs);
+    }(document, 'script', 'facebook-jssdk'));</script>
+  </li>
+  <li>
+    <a href="http://b.hatena.ne.jp/entry/" class="hatena-bookmark-button" data-hatena-bookmark-layout="basic-label-counter" data-hatena-bookmark-lang="en" title="このエントリーをはてなブックマークに追加"><img src="https://b.st-hatena.com/images/entry-button/button-only@2x.png" alt="このエントリーをはてなブックマークに追加" width="20" height="20" style="border: none;" /></a><script src="https://b.st-hatena.com/js/bookmark_button.js" charset="utf-8" async="async"></script>
+  </li>
+  <li>
+    <a data-pocket-label="pocket" data-pocket-count="horizontal" class="pocket-btn" data-lang="en"></a>
+    <script>!function(d,i){if(!d.getElementById(i)){var j=d.createElement("script");j.id=i;j.src="https://widgets.getpocket.com/v1/j/btn.js?v=1";var w=d.getElementById(i);d.body.appendChild(j);}}(document,"pocket-btn-js");</script>
+  </li>
+</ul>
+
+    <div class="disqus-comments">
+      <div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+    
+    
+    
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "Shortname" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+    </div>
+
+    <ul class="pager article-pager">
+      <li class="pager-newer">
+          <a href="/posts/xshell-ssh%E5%88%B0%E8%99%9A%E6%8B%9F%E6%9C%BA%E6%8F%90%E7%A4%BA%E4%BF%A1%E6%81%AF%E5%8F%98%E4%B8%BA%E4%B8%AD%E6%96%87%E7%9A%84%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88/" data-toggle="tooltip" data-placement="top" title="XShell SSH到虚拟机提示信息变为中文的解决方案">&lt; Newer</a>
+      </li>
+      <li class="pager-older">
+        <a href="/posts/%E4%BA%A4%E4%BA%92%E5%BC%8F%E7%9A%84debug%E5%B7%A5%E5%85%B7psysh/" data-toggle="tooltip" data-placement="top" title="交互式的Debug工具PsySH">Older &gt;</a>
+      </li>
+    </ul>
+  </div>
+
+
+<div class="site-footer">
+  <div class="copyright">&copy; Copyright 2017 Symo</div>
+  <ul class="site-footer-items">
+  </ul>
+  <div class="powerdby">
+    Powered by <a href="https://gohugo.io/">Hugo</a> and <a href="https://github.com/taikii/whiteplain">Whiteplain</a>
+  </div>
+</div>
+
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+	(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+	m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+	})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+	ga('create', 'UA-135933944-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+
+
+</body>
+</html>

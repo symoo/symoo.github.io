@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+  <title>CentOS 防火墙配置 - symo&#39;s blog</title>
+  <meta property="og:title" content="CentOS 防火墙配置 - symo&#39;s blog" />
+  <meta name="twitter:title" content="CentOS 防火墙配置 - symo&#39;s blog" />
+  <meta name="description" content="##iptables规则 1. 规则从上向下匹配,如果匹配成功一条规则,则不向下进行匹配(重要) 2. 没有匹配的规则时,执行默认动作 3. 规则存储在内存中,不会自动存储到磁盘,因此重启之后规则就失效了,所以需要使用初始化脚本来保存规则 4. 如果远程管理服务器,比如使用SSH,那么配置规则之前首先添加允许SSH的规则,不然iptables会把你自己阻止在外
+##iptable链与处理方式 ###iptable链 * INPUT链 进站数据包的规则 * OUTPUT链 出站数据包的规则 ###处理方式 * ACCEPT 数据包允许通过其到达目的地 * DROP 数据包被拒绝不返回任何信息
+查看防火墙 iptables -L
+Chain INPUT (policy ACCEPT) target prot opt source destination Chain FORWARD (policy ACCEPT) target prot opt source destination Chain OUTPUT (policy ACCEPT) target prot opt source destination  清空防火墙 iptables -F ##实例: ###禁止192.168.1.100通过SSH的22端口了解服务器 iptables -A INPUT -s 192.168.1.100 -p TCP--dport 22 -j DROP |参数|(参数区分大小写)| |:&ndash;:|:&ndash;:| |-A|追加规则链到底部| |-I|插入规则链到头部| |-s|来源IP| |-d|目的地址(即服务器的IP)| |-D|删除规则| |-p|通信协议(TCP,UDP)| |&ndash;dport|目的端口(SSH服务默认使用22)| |&ndash;sprot|来源端口| |-j|操作方式(ACCEPT,DROP)| |-i|数据包进入的网卡| |-o|流出数据包的网卡| |-L|查看防火墙规则| |&ndash;line-number|带行号显示| |-P|默认规则| |-n|以数字形式显示">
+  <meta property="og:description" content="##iptables规则 1. 规则从上向下匹配,如果匹配成功一条规则,则不向下进行匹配(重要) 2. 没有匹配的规则时,执行默认动作 3. 规则存储在内存中,不会自动存储到磁盘,因此重启之后规则就失效了,所以需要使用初始化脚本来保存规则 4. 如果远程管理服务器,比如使用SSH,那么配置规则之前首先添加允许SSH的规则,不然iptables会把你自己阻止在外
+##iptable链与处理方式 ###iptable链 * INPUT链 进站数据包的规则 * OUTPUT链 出站数据包的规则 ###处理方式 * ACCEPT 数据包允许通过其到达目的地 * DROP 数据包被拒绝不返回任何信息
+查看防火墙 iptables -L
+Chain INPUT (policy ACCEPT) target prot opt source destination Chain FORWARD (policy ACCEPT) target prot opt source destination Chain OUTPUT (policy ACCEPT) target prot opt source destination  清空防火墙 iptables -F ##实例: ###禁止192.168.1.100通过SSH的22端口了解服务器 iptables -A INPUT -s 192.168.1.100 -p TCP--dport 22 -j DROP |参数|(参数区分大小写)| |:&ndash;:|:&ndash;:| |-A|追加规则链到底部| |-I|插入规则链到头部| |-s|来源IP| |-d|目的地址(即服务器的IP)| |-D|删除规则| |-p|通信协议(TCP,UDP)| |&ndash;dport|目的端口(SSH服务默认使用22)| |&ndash;sprot|来源端口| |-j|操作方式(ACCEPT,DROP)| |-i|数据包进入的网卡| |-o|流出数据包的网卡| |-L|查看防火墙规则| |&ndash;line-number|带行号显示| |-P|默认规则| |-n|以数字形式显示">
+  <meta name="twitter:description" content="##iptables规则 1. 规则从上向下匹配,如果匹配成功一条规则,则不向下进行匹配(重要) 2. 没有匹配的规则时,执行默认动作 3. 规则存储在内存中,不会自动存储到磁盘,因此重启之后规则就失效了,所以需要使用初始化脚本来保存规则 4. 如果远程管理服务器,比如使用SSH,那么配置规则之前首先添加允许SSH的规则,不然iptables会把你自己阻止在外
+##iptable …">
+  <meta name="author" content="Your name"/>
+  <meta property="og:site_name" content="symo&#39;s blog" />
+  <meta property="og:url" content="https://example.com/posts/centos%E9%98%B2%E7%81%AB%E5%A2%99%E9%85%8D%E7%BD%AE/" />
+  <meta property="og:type" content="article" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="generator" content="Hugo 0.53" />
+
+  <link rel="stylesheet" href="/css/style.css" media="all" />
+  <link rel="stylesheet" href="/css/syntax.css" media="all" />
+  <link rel="stylesheet" href="/css/custom.css" media="all" />
+
+  <script src="/js/script.js"></script>
+  <script src="/js/custom.js"></script>
+  <script defer src="/js/fontawesome.js"></script>
+</head>
+
+<body>
+
+<header class="site-header">
+  <nav class="site-navi">
+    <h1 class="site-title"><a href="/">symo&#39;s blog</a></h1>
+    <ul class="site-navi-items">
+      <li class="site-navi-item-categories"><a href="/posts/" title="Posts">Posts</a></li>
+      <li class="site-navi-item-tags"><a href="/tags/" title="Tags">Tags</a></li>
+    </ul>
+  </nav>
+</header>
+<hr class="site-header-bottom">
+
+  <div class="main" role="main">
+    <article class="article">
+      
+      
+      <h1 class="article-title">CentOS 防火墙配置</h1>
+      
+      <hr class="article-title-bottom">
+      <ul class="article-meta">
+        <li class="article-meta-date"><time>July 19, 2015</time></li>
+      </ul>
+      
+      
+
+<hr />
+
+<p>##iptables规则
+1. <strong>规则从上向下匹配,如果匹配成功一条规则,则不向下进行匹配(重要)</strong>
+2. 没有匹配的规则时,执行默认动作
+3. 规则存储在内存中,不会自动存储到磁盘,因此重启之后规则就失效了,所以需要使用初始化脚本来保存规则
+4. 如果远程管理服务器,比如使用SSH,那么配置规则之前首先添加允许SSH的规则,不然iptables会把你自己阻止在外</p>
+
+<p>##iptable链与处理方式
+###iptable链
+* INPUT链   进站数据包的规则
+* OUTPUT链  出站数据包的规则
+###处理方式
+* ACCEPT    数据包允许通过其到达目的地
+* DROP      数据包被拒绝不返回任何信息</p>
+
+<h2 id="查看防火墙">查看防火墙</h2>
+
+<p><code>iptables -L</code></p>
+
+<pre><code>Chain INPUT (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain FORWARD (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain OUTPUT (policy ACCEPT)
+target     prot opt source               destination   
+</code></pre>
+
+<h2 id="清空防火墙">清空防火墙</h2>
+
+<p><code>iptables -F</code>
+##实例:
+###禁止192.168.1.100通过SSH的22端口了解服务器
+<code>iptables -A INPUT -s 192.168.1.100 -p TCP--dport 22 -j DROP</code>
+|参数|(参数区分大小写)|
+|:&ndash;:|:&ndash;:|
+|-A|追加规则链到底部|
+|-I|插入规则链到头部|
+|-s|来源IP|
+|-d|目的地址(即服务器的IP)|
+|-D|删除规则|
+|-p|通信协议(TCP,UDP)|
+|&ndash;dport|目的端口(SSH服务默认使用22)|
+|&ndash;sprot|来源端口|
+|-j|操作方式(ACCEPT,DROP)|
+|-i|数据包进入的网卡|
+|-o|流出数据包的网卡|
+|-L|查看防火墙规则|
+|&ndash;line-number|带行号显示|
+|-P|默认规则|
+|-n|以数字形式显示</p>
+
+<h3 id="默认数据包为允许">默认数据包为允许</h3>
+
+<p><code>iptables -P INPUT ACCEPT</code></p>
+
+<h3 id="不接收来自192-168-1-100的数据包">不接收来自192.168.1.100的数据包</h3>
+
+<p><code>iptables -I INPUT -s 192.168.1.100 -j DROP</code></p>
+
+<h3 id="将来自192-168-100的ssh服务放行">将来自192.168.100的SSH服务放行</h3>
+
+<p><code>iptables -I INPUT -s 192.168.1.100 -p tcp --dport 22 -j ACCEPT</code></p>
+
+<h3 id="允许连接localhost的数据包">允许连接localhost的数据包</h3>
+
+<p><code>iptables -I INPUT -i lo -J ACCEPT</code></p>
+
+<h3 id="禁止192-168-1-100的ping操作">禁止192.168.1.100的ping操作</h3>
+
+<p><code>iptables -A INPUT -s 192.168.1.106 -p icmp -j DROP</code>
+&gt; 注:&ndash;sport &ndash;dport必须配合参数-p使用
+##数据包状态</p>
+
+<h3 id="new">NEW</h3>
+
+<ul>
+<li><p>第一服务器发送个第二服务器一个SYN数据包来新建一个连接</p>
+
+<h3 id="related">RELATED</h3></li>
+
+<li><p>第二服务器接受SYN数据包并发送给第一服务器一个SYB-ACk数据包来确定连接正常</p>
+
+<h3 id="established">ESTABLISHED</h3></li>
+
+<li><p>第一服务器接收到SYN-ACK数据包来做最后的确认,至此连接建立</p>
+
+<h2 id="保存iptables规则">保存iptables规则</h2>
+
+<p><code>service iptables save</code></p></li>
+</ul>
+
+<p>##附:WEB服务器防火墙规则脚本</p>
+
+<pre><code>IPT=&quot;/sbin/iptables&quot;
+#删除所有规则
+$IPT -F
+#默认规则为全部禁⽌
+$IPT -P INPUT DROP
+$IPT -P FORWARD DROP
+$IPT -P OUTPUT DROP
+#设置当连接状态为RELATED和ESTABLISHED时，允许数据进⼊服务器
+$IPT -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
+#设置外部客户端连接服务器端⼝80,22,21
+$IPT -A INPUT -p tcp -m tcp --dport 80 -j ACCEPT
+$IPT -A INPUT -p tcp -m tcp --dport 22 -j ACCEPT
+$IPT -A INPUT -p tcp -m tcp --dport 21 -j ACCEPT
+$IPT -A INPUT -p tcp -m tcp --dport 20 -j ACCEPT
+#允许外部ping服务器
+$IPT -A INPUT -p icmp -j ACCEPT
+#允许内部数据循回
+$IPT -A INPUT -i lo -j ACCEPT
+#设置状态为RELATED和ESTABLISHED的数据可以从服务器发送到外部
+$IPT -A OUTPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
+#允许访问外部dns服务器
+$IPT -A OUTPUT -p udp -m udp --dport 53 -j ACCEPT
+#允许内部数据循回
+$IPT -A OUTPUT -o lo -j ACCEPT
+#访问外部服务器80， 22， 21端⼝
+$IPT -A OUTPUT -p tcp -m tcp --dport 80 -j ACCEPT
+$IPT -A OUTPUT -p tcp -m tcp --dport 22 -j ACCEPT
+$IPT -A OUTPUT -p tcp -m tcp --dport 21 -j ACCEPT
+$IPT -A OUTPUT -p tcp -m tcp --dport 20 -j ACCEPT
+#允许ping操作的数据输出
+$IPT -A OUTPUT -p icmp -j ACCEPT
+#保存重起iptables服务⽣效
+service iptables save
+service iptables restart
+</code></pre>
+
+    </article>
+
+    
+<ul class="article-share">
+  <li>
+    <a href="https://twitter.com/share" class="twitter-share-button">Tweet</a> <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
+  </li>
+  <li>
+    <div class="fb-share-button" data-href="https://example.com/posts/centos%E9%98%B2%E7%81%AB%E5%A2%99%E9%85%8D%E7%BD%AE/" data-layout="button_count" data-action="like" data-size="small" data-show-faces="true" data-share="true"></div>
+    <div id="fb-root"></div>
+    <script>(function(d, s, id) {
+      var js, fjs = d.getElementsByTagName(s)[0];
+      if (d.getElementById(id)) return;
+      js = d.createElement(s); js.id = id;
+      js.src = "//connect.facebook.net/ja_JP/sdk.js#xfbml=1&version=v2.10";
+      fjs.parentNode.insertBefore(js, fjs);
+    }(document, 'script', 'facebook-jssdk'));</script>
+  </li>
+  <li>
+    <a href="http://b.hatena.ne.jp/entry/" class="hatena-bookmark-button" data-hatena-bookmark-layout="basic-label-counter" data-hatena-bookmark-lang="en" title="このエントリーをはてなブックマークに追加"><img src="https://b.st-hatena.com/images/entry-button/button-only@2x.png" alt="このエントリーをはてなブックマークに追加" width="20" height="20" style="border: none;" /></a><script src="https://b.st-hatena.com/js/bookmark_button.js" charset="utf-8" async="async"></script>
+  </li>
+  <li>
+    <a data-pocket-label="pocket" data-pocket-count="horizontal" class="pocket-btn" data-lang="en"></a>
+    <script>!function(d,i){if(!d.getElementById(i)){var j=d.createElement("script");j.id=i;j.src="https://widgets.getpocket.com/v1/j/btn.js?v=1";var w=d.getElementById(i);d.body.appendChild(j);}}(document,"pocket-btn-js");</script>
+  </li>
+</ul>
+
+    <div class="disqus-comments">
+      <div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+    
+    
+    
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "Shortname" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+    </div>
+
+    <ul class="pager article-pager">
+      <li class="pager-newer">
+          <a href="/posts/%E5%BE%AE%E4%BF%A1%E6%8E%A5%E5%8F%A3%E5%88%9B%E5%BB%BA%E6%8C%89%E9%92%AE%E6%97%B6%E7%9A%84%E4%B8%AD%E6%96%87%E7%BC%96%E7%A0%81%E9%97%AE%E9%A2%98/" data-toggle="tooltip" data-placement="top" title="微信接口创建按钮时的中文编码问题">&lt; Newer</a>
+      </li>
+      <li class="pager-older">
+        <a href="/posts/apache%E6%9C%8D%E5%8A%A1%E5%99%A8/" data-toggle="tooltip" data-placement="top" title="Apache服务器">Older &gt;</a>
+      </li>
+    </ul>
+  </div>
+
+
+<div class="site-footer">
+  <div class="copyright">&copy; Copyright 2017 Symo</div>
+  <ul class="site-footer-items">
+  </ul>
+  <div class="powerdby">
+    Powered by <a href="https://gohugo.io/">Hugo</a> and <a href="https://github.com/taikii/whiteplain">Whiteplain</a>
+  </div>
+</div>
+
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+	(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+	m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+	})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+	ga('create', 'UA-135933944-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+
+
+</body>
+</html>
